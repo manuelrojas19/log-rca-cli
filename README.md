@@ -21,13 +21,13 @@ graph TD
 
 ```mermaid
 graph LR
-    A[Start] --> B[Read Logs (file or Loki)]
+    A[Start] --> B["Read Logs (file or Loki)"]
     B --> C[Detect Format & Normalize]
     C --> D[Chunk Logs]
-    D --> E[Analyze Chunk (LLM)]
+    D --> E["Analyze Chunk (LLM)"]
     E --> F[Aggregate Analyses]
     F --> G[Format Report]
-    G --> H[Output (stdout/file)]
+    G --> H["Output (stdout/file)"]
 ```
 
 * **[src/cli.ts](file:///Users/manuelantoniorojasramos/Projects/log-rca/src/cli.ts)**: Orchestrates the pipeline, parses command-line arguments, and formats SRE outputs.
