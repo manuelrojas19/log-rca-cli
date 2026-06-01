@@ -1,0 +1,78 @@
+version: '3.8'
+
+# ─── Local Observability Stack ────────────────────────────────────────────────
+# Grafana + Loki + Promtail — open source, no Splunk needed
+#
+# Start:   docker compose up -d
+# Stop:    docker compose down
+# Logs:    docker compose logs -f
+#
+# Access:
+#   Grafana:  http://localhost:3000  (admin / admin)
+#   Loki API: http://localhost:3100
+
+services:
+
+  # ── Loki — log storage & query engine ──────────────────────────────────────
+  # Think of Loki as a lightweight open-source alternative to Splunk indexer.
+  # It stores logs compressed and indexes only labels (not full content).
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    # The built-in local-config.yaml stores data in /loki inside the container.
+    # For production you'd mount a volume here.
+    networks:
+      - observability
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Promtail — log shipper ─────────────────────────────────────────────────
+  # Watches ./logs/ on your machine and ships every .log file to Loki.
+  # The open-source equivalent of a Splunk Universal Forwarder.
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./logs:/var/log/app:ro           # your log folder (read-only)
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - observability
+
+  # ── Grafana — dashboards & log explorer ───────────────────────────────────
+  # The same visualization layer used under the hood by Datadog, New Relic, etc.
+  # Auto-provisioned with Loki as datasource — no manual setup needed.
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/loki.yml:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - observability
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  grafana-data:

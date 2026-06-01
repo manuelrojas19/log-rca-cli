@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  # Tracks which lines Promtail has already shipped — survives restarts
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: app-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: app-logs
+          env: local
+          # Watches ALL .log files dropped into ./logs/
+          # Each file gets a "filename" label automatically
+          __path__: /var/log/app/*.log
+
+    # Pipeline stages transform each log line before sending to Loki.
+    # This extracts the log level so you can filter by {level="ERROR"} in LogQL.
+    pipeline_stages:
+      - regex:
+          # Matches lines like: 2024-01-15T10:23:01Z ERROR service-name - message
+          expression: '^(?P<timestamp>\S+)\s+(?P<level>INFO|WARN|ERROR|DEBUG|FATAL)\s+(?P<service>\S+)\s+-\s+(?P<message>.+)$'
+      - labels:
+          level:    # adds {level="ERROR"} label — filterable in Grafana
+          service:  # adds {service="api-gateway"} label

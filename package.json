@@ -1,0 +1,23 @@
+{
+  "name": "log-rca",
+  "version": "1.0.0",
+  "description": "AI-powered Root Cause Analysis CLI for log files using Ollama",
+  "main": "dist/cli.js",
+  "bin": {
+    "log-rca": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "analyze": "ts-node src/cli.ts",
+    "generate-logs": "ts-node scripts/generate-logs.ts",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}
